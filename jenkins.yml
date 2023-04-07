@@ -1,0 +1,49 @@
+pipeline {
+  agent any
+  stages {
+    stage('Sync Repository') {
+      steps {
+        git branch: 'main', url: 'https://github.com/jiyadkhan10/I191771_Task02.git'
+      }
+    }
+    stage('Build Docker Image') {
+      steps {
+        script {
+          docker.withRegistry('https://docker.io', 'docker-hub') {
+            def dockerImage = docker.build('my-microservice', '.')
+            dockerImage.push()
+          }
+        }
+      }
+    }
+    stage('Deploy to Kubernetes') {
+      steps {
+        script {
+          def kubeConfig = credentials('kubeconfig')
+          kubeConfig.withKubeConfig {
+            sh 'kubectl apply -f deployment.yml'
+          }
+        }
+      }
+    }
+    stage('Verify Deployment') {
+      steps {
+        script {
+          def liveIp = sh(script: "kubectl get nodes -o=jsonpath='{.items[0].status.addresses[0].address}'", returnStdout: true).trim()
+          def port = sh(script: "kubectl get svc/my-microservice -o=jsonpath='{.spec.ports[0].nodePort}'", returnStdout: true).trim()
+          sh "curl http://192.168.99.100:8088/change/1/4"
+        }
+      }
+    }
+  }
+  post {
+    always {
+      script {
+        docker.withRegistry('https://docker.io', 'docker-hub') {
+          def dockerImage = docker.build('my-microservice', '.')
+          dockerImage.push()
+        }
+      }
+    }
+  }
+}
