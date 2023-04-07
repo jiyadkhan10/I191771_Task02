@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-microservice
+  labels:
+    app: my-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-microservice
+  template:
+    metadata:
+      labels:
+        app: my-microservice
+    spec:
+      containers:
+        - name: my-microservice
+          image: yourusername/my-microservice:latest
+          ports:
+            - containerPort: 8088
